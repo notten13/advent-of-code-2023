@@ -12,30 +12,34 @@ type ParsedInput = {
 }[];
 
 export function parseInput(input: string): ParsedInput {
-  return input.split('\n').map(line => line.trim()).filter(Boolean).map((line, index) => {
-    const gameOutput = line.split(':')[1];
-    const revealedCubesString = gameOutput.split(';');
+  return input
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, index) => {
+      const gameOutput = line.split(':')[1];
+      const revealedCubesString = gameOutput.split(';');
 
-    const cubes = revealedCubesString.map((revealedCubes) => {
-      const counts: CubesCount = {
-        red: 0,
-        green: 0,
-        blue: 0,
-      };
+      const cubes = revealedCubesString.map((revealedCubes) => {
+        const counts: CubesCount = {
+          red: 0,
+          green: 0,
+          blue: 0,
+        };
 
-      revealedCubes.split(',').forEach((cube) => {
-        const [countString, color] = cube.trim().split(' ');
-        counts[color as keyof CubesCount] = parseInt(countString);
+        revealedCubes.split(',').forEach((cube) => {
+          const [countString, color] = cube.trim().split(' ');
+          counts[color as keyof CubesCount] = parseInt(countString);
+        });
+
+        return counts;
       });
 
-      return counts;
+      return {
+        gameId: index + 1,
+        revealedCubes: cubes,
+      };
     });
-
-    return {
-      gameId: index + 1,
-      revealedCubes: cubes,
-    };
-  });
 }
 
 /**
@@ -64,6 +68,38 @@ export function getSumOfPossibleGameIds(
   return possibleGames.reduce((sum, game) => sum + game.gameId, 0);
 }
 
+/**
+ * Get sum of all game powers. The power is: for each game, we find the minimum
+ * number of cubes of each colour that must be in the bag for the input to be
+ * possible. The power of a game is the product of these minimum counts.
+ */
+export function getSumOfGamePowers(input: string) {
+  // TODO: do this once in main function
+  const parsedInput: ParsedInput = parseInput(input);
+
+  const gamePowers: number[] = parsedInput.map((game) => {
+    // For each game, find minimum number of cubes of each colour
+    const minimumCubes: CubesCount = {
+      red: 0,
+      green: 0,
+      blue: 0,
+    };
+
+    game.revealedCubes.forEach((revealedCubes) => {
+      Object.entries(revealedCubes).forEach(([color, count]) => {
+        minimumCubes[color as keyof CubesCount] = Math.max(
+          minimumCubes[color as keyof CubesCount],
+          count
+        );
+      });
+    });
+
+    return minimumCubes.red * minimumCubes.green * minimumCubes.blue;
+  });
+
+  return gamePowers.reduce((sum, power) => sum + power, 0);
+}
+
 async function run() {
   const hypotheticalBagContent: CubesCount = {
     red: 12,
@@ -73,7 +109,11 @@ async function run() {
 
   const input = await fs.readFile('src/day-02/input.txt', 'utf-8');
 
-  return getSumOfPossibleGameIds(input, hypotheticalBagContent);
+  console.log(
+    'Part 1:',
+    getSumOfPossibleGameIds(input, hypotheticalBagContent)
+  );
+  console.log('Part 2:', getSumOfGamePowers(input));
 }
 
 run().then(console.log).catch(console.error);

@@ -1,6 +1,5 @@
-// sum.test.js
 import { expect, test } from 'vitest';
-import { getSumOfCalibrationNumbers, transformSpelledOutDigits } from './index';
+import { getSumOfCalibrationNumbers } from './index';
 
 test('get sum with simple input', () => {
   // 15 + 30 = 45
